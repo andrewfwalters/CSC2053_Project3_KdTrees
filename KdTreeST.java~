@@ -1,0 +1,185 @@
+public class KdTreeST<Value> {
+    
+    //constants for deciding which key to search
+    Private static boolean cmpX = true;
+    
+    //root of tree
+    private Node root;
+    
+    //node of tree
+    private class Node<Value> {
+        private Point2D key;       // sorted by key
+        private Value val;         // associated data
+        private Node left, right;  // left and right subtrees
+        private int N;             // number of nodes in subtree
+        
+        //node constructor
+        public Node(Key key, Value val, int N) {
+            this.key = key;
+            this.val = val;
+            this.N = N;
+        }//end node constructor
+    }//end node definition
+    
+    // is the tree empty?
+    public boolean isEmpty() {
+        return size() == 0;
+    }//end isEmpty
+
+    // return number of key-value pairs in BST
+    public int size() {
+        return size(root);
+    }//end size()
+
+    // return number of key-value pairs in BST rooted at x
+    private int size(Node x) {
+        if (x == null) return 0;
+        else return x.N;
+    }//end size(Node)
+    
+    // add the point p to the tree or if it already exists, update
+    public void insert(Point2D p, Value v) {
+        if (val == null) {
+            delete(key);
+            return;
+        }
+        root = put(root, p, v, cmpX);
+        assert check();
+    }
+    
+    // helper method for insert
+    private Node put(Node x, Point2D p, Value v, boolean dim) {
+        //if the bottom of the tree has been reached, create a new node
+        if (x == null) return new Node(p, v, 1);
+        //compareTo by dimension
+        int cmp = compareDim(p,x.key,dim);
+        //go left
+        if      (cmp < 0) x.left  = put(x.left,  p, v, !dim);
+        //go right
+        else if (cmp > 0) x.right = put(x.right, p, v, !dim);
+        //found node, update value
+        else              x.val   = val;
+        x.N = 1 + size(x.left) + size(x.right);
+        return x;
+    }//end insert
+    
+    /*****************************************************************
+      * Helper method for put that replaces compareTo
+      * returns -1 for a.key < b
+      * returns 1 for a.key > b
+      * returns 0 for a.key == b
+      * recursieve calls to this method should contain !dim
+      * **************************************************************/
+    private int compareDim(Point2D a, Point2D b, boolean dim) {
+        //compare x coordinates
+        if(dim==cmpX) {
+            return (a.x).compareTo(b.x);
+        }//end if
+        //compare y coordinates
+        else {
+            return (a.y).compareTo(b.y);
+        }//end else
+    }//end compareDim
+    
+    // returns value mapped to by p   
+    public Value get(Point2D p) {
+        return st.get(p);
+    }//end get
+    
+    // does the ST contain the point p?
+    public boolean contains(Point2D p) {
+        return st.contains(p);
+    }//end contains
+    
+    // draw points to standard draw
+    public void draw() {
+        Iterable<Point2D> list = st.keys();
+        for(Point2D key: list) {
+            key.draw();
+        }
+    }//end draw
+    
+    // all points in the ST that are inside the rectangle
+    public Iterable<Point2D> range(RectHV rect) {
+        
+        //get an iterable list of all points within the y range
+        Point2D ymin = new Point2D(rect.ymin(),rect.xmin());
+        Point2D ymax = new Point2D(rect.ymax(),rect.xmax());
+        Iterable<Point2D> list = st.keys(ymin,ymax);
+        
+        //determine which of those points are within x range
+        Queue<Point2D> queue = new Queue<Point2D>();
+        for(Point2D key: list) {
+            if(rect.xmin() <= key.x() && key.x() <= rect.xmax()) {
+                queue.enqueue(key);
+            }
+        }//end loop
+        
+        return queue;
+        
+    }//end range
+    
+    // a nearest neighbor in the ST to p; null if set is empty
+    public Point2D nearest(Point2D p) {
+        
+        //return null if empty set
+        if(st.isEmpty()) {
+            return null;
+        }
+        
+        //temp variables to iterate through points
+        Point2D near = st.min();
+        double dist = p.distanceSquaredTo(near);
+        Iterable<Point2D> list = st.keys();
+        
+        //loop through all the points, checking distance to each
+        for(Point2D key: list) {
+            //check if this is closer than current point
+            if(p.distanceSquaredTo(key) < dist && p.compareTo(key) != 0) {
+                near = key;
+                dist = p.distanceSquaredTo(key);
+            }
+        }//end loop
+        
+        return near;
+    }//end nearest
+    
+    // unit testing of the methods (not graded)
+    public static void main(String[] args) {
+        
+        //test constructor, insert, and draw
+        PointST<Integer> points = new PointST<Integer>();
+        for (int i = 0; i < 100; i++) {
+            int x = StdRandom.uniform(100);
+            int y = StdRandom.uniform(100);
+            points.insert(new Point2D(x, y),1);
+        }
+        StdDraw.setCanvasSize(600, 600);
+        StdDraw.setXscale(0, 100);
+        StdDraw.setYscale(0, 100);
+        StdDraw.setPenRadius(.01);
+        points.draw();
+        
+        //test range
+        RectHV rect = new RectHV(20, 20, 40, 40);
+        rect.draw();
+        Iterable<Point2D> list = points.range(rect);
+        StdDraw.setPenColor(StdDraw.RED);
+        StdDraw.setPenRadius(.02);
+        for(Point2D key: list) {
+            key.draw();
+        }//end loop       
+        
+        //test nearest
+        Point2D center = new Point2D(50, 50);
+        points.insert(center,1);
+        StdDraw.setPenColor(StdDraw.BLUE);
+        center.draw();
+        StdDraw.setPenColor(StdDraw.BLACK);
+        StdDraw.setPenRadius(.005);
+        center.drawTo(points.nearest(center));
+        
+
+    }//end main
+    
+}//end class

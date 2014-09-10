@@ -1,0 +1,305 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 3.2 Final//EN">
+<!-- saved from url=(0061)http://www.csc.villanova.edu/~map/2053/s14/kdtree/kdtree.html -->
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1"><title>Proj 3: Kd-Trees</title></head><body>
+<h2>Project 3: Kd-Trees</h2>
+
+<hr><!--represent a set of points in the unit square 
+(all points have <em>x</em>- and <em>y</em>-coordinates between 0 and 1)-->
+Write a symbol table data type
+that provides the ability to map from Point2D objects to arbitrary
+values.
+Use a <em>2d-tree</em> to support
+efficient <em>range search</em> (find all of the points contained
+in a query rectangle) and <em>nearest neighbor search</em> (find a
+closest point to a query point).
+2d-trees have numerous applications, ranging from classifying
+astronomical objects
+to computer animation to speeding up neural networks to mining data to
+image retrieval.
+<center><img src="./Proj 3  Kd-Trees_files/kdtree-ops.png" alt="Range search and k-nearest neighbor">
+</center>
+
+<p><br>
+<b>Geometric primitives.</b>
+To get started, use the following geometric primitives for points and
+axis-aligned rectangles in the plane.
+</p>
+
+<center><img src="./Proj 3  Kd-Trees_files/RectHV.png" alt="Geometric primitives">
+</center>
+
+<p>
+Use the immutable data type <a href="http://algs4.cs.princeton.edu/code/Point2D.java.html">Point2D.java</a>
+(part of <tt>algs4.jar</tt>) for points in the plane.
+Here is the subset of its API that you may use:
+</p>
+
+<blockquote>
+  <pre>public class Point2D {<br>   public Point2D(double x, double y)              // construct the point (x, y)<br>   public  double x()                              // x-coordinate<br>   public  double y()                              // y-coordinate<br>   public  double distanceSquaredTo(Point2D that)  // square of Euclidean distance between two points<br>   public     int compareTo(Point2D that)          // for use in an ordered symbol table<br>   public boolean equals(Object that)              // does this point equal that?<br>   public    void draw()                           // draw to standard draw<br>   public  String toString()                       // string representation<br>}<br></pre>
+</blockquote>
+
+Use the immutable data type <a href="http://algs4.cs.princeton.edu/code/RectHV.java.html">RectHV.java</a>
+(not part of <tt>algs4.jar</tt>) for axis-aligned rectanges.
+Here is the subset of its API that you may use:
+<blockquote>
+  <pre>public class RectHV {<br>   public    RectHV(double xmin, double ymin,      // construct the rectangle [xmin, xmax] x [ymin, ymax]<br>                    double xmax, double ymax)      // throw a java.lang.IllegalArgumentException if (xmin &gt; xmax) or (ymin &gt; ymax)<br>   public  double xmin()                           // minimum x-coordinate of rectangle<br>   public  double ymin()                           // minimum y-coordinate of rectangle<br>   public  double xmax()                           // maximum x-coordinate of rectangle<br>   public  double ymax()                           // maximum y-coordinate of rectangle<br>   public boolean contains(Point2D p)              // does this rectangle contain the point p (either inside or on boundary)?<br>   public boolean intersects(RectHV that)          // does this rectangle intersect that rectangle (at one or more points)?<br>   public  double distanceSquaredTo(Point2D p)     // square of Euclidean distance from point p to closest point in rectangle<br>   public boolean equals(Object that)              // does this rectangle equal that?<br>   public    void draw()                           // draw to standard draw<br>   public  String toString()                       // string representation<br>}<br></pre>
+</blockquote>
+
+Do not modify these data types.
+<p><b>Part 1 - Brute-force implementation (NOT a 2d-tree).</b> Write a mutable data type <tt>PointST.java</tt> that uses a symbol table to associate
+Point2D objects to a generic value. Implementing the following API
+using a Binary Search Tree implementation:
+</p>
+
+<blockquote>
+  <pre>public class PointST&lt;Value&gt; {<br>   public         PointST()                               // construct an empty symbol table of points<br>   public           boolean isEmpty()                     // is the symbol table empty?<br>   public               int size()                        // number of points in the ST<br>   public              void insert(Point2D p, Value v)    // add the point p to the ST or if it already exists, update<br>   public             Value get(Point2D p)                // returns value mapped to by p   <br>   public           boolean contains(Point2D p)           // does the ST contain the point p?<br>   public              void draw()                        // draw points to standard draw<br>   public Iterable&lt;Point2D&gt; range(RectHV rect)            // all points in the ST that are inside the rectangle<br>   public           Point2D nearest(Point2D p)            // a nearest neighbor in the ST to p; null if set is empty<br>   public static void main(String[] args)                 // unit testing of the methods (not graded)<br>}<br></pre>
+</blockquote>
+
+<!--   public Iterable&lt;Point&gt; nearest(Point p, int k)  // k-closest neighbors in the set to p -->
+Your implementation should support <tt>insert()</tt>, <tt>get()</tt>
+and <tt>contains()</tt> in time
+proportional to the logarithm of the number of points in the set in the
+worst case; it should support
+<tt>nearest()</tt> and <tt>range()</tt> in time proportional to the
+number of points in the symbol table. You may assume that clients will
+not pass key or value arguments equal to null. Use the BST.java or ST.java<br>
+
+<br>
+
+<p><b>Part 2: 2d-tree implementation.</b>
+Write a mutable data type <tt>KdTreeST.java</tt> that uses a 2d-tree
+to implement the same API (but replace <tt>PointST</tt> with <tt>KdTreeST</tt>).
+A <em>2d-tree</em> is a generalization of a BST to two-dimensional
+keys.
+The idea is to build a BST with points in the nodes,
+using the <em>x</em>- and <em>y</em>-coordinates of the points
+as keys in strictly alternating sequence, starting with the <em>x</em>-coordinates.
+</p>
+
+
+<ul>
+
+  <li><em>Search and insert.</em> The algorithms for search and insert
+are similar to those for
+BSTs, but at the root we use the <em>x</em>-coordinate
+(if the point to be inserted has a smaller <em>x</em>-coordinate
+than the point at the root, go left; otherwise go right);
+then at the next level, we use the <em>y</em>-coordinate
+(if the point to be inserted has a smaller <em>y</em>-coordinate
+than the point in the node, go left; otherwise go right);
+then at the next level the <em>x</em>-coordinate, and so forth. </li>
+</ul>
+
+<p>
+</p>
+
+<blockquote>
+  <table border="0" cellpadding="2" cellspacing="0">
+    <tbody>
+      <tr>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree1.png" alt="Insert (0.7, 0.2)"></center>
+        <br>
+        <center><font size="-1"><em>insert (0.7, 0.2)</em></font></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree2.png" alt="Insert (0.5, 0.4)"></center>
+        <br>
+        <center><font size="-1"><em>insert (0.5, 0.4)</em></font></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree3.png" alt="Insert (0.2, 0.3)"></center>
+        <br>
+        <center><font size="-1"><em>insert (0.2, 0.3)</em></font></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree4.png" alt="Insert (0.4, 0.7)"></center>
+        <br>
+        <center><font size="-1"><em>insert (0.4, 0.7)</em></font></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree5.png" alt="Insert (0.9, 0.6)"></center>
+        <br>
+        <center><font size="-1"><em>insert (0.9, 0.6)</em></font></center>
+<!-- <td><center><IMG SRC="kdtree6.png" alt = "Insert (0.8, 0.1)"></center> -->
+<!-- <br><center><font size = -1><em>insert (0.8, 0.1)</em></font></center> --></td>
+      </tr>
+      <tr>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree-insert1.png" alt="Insert (0.7, 0.2)"></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree-insert2.png" alt="Insert (0.5, 0.4)"></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree-insert3.png" alt="Insert (0.2, 0.3)"></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree-insert4.png" alt="Insert (0.4, 0.7)"></center>
+        </td>
+        <td>
+        <center><img src="./Proj 3  Kd-Trees_files/kdtree-insert5.png" alt="Insert (0.9, 0.6)"></center>
+<!-- <td><center><IMG SRC="kdtree-insert6.png" alt = "Insert (0.8, 0.1)"></center> -->
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</blockquote>
+
+<ul>
+
+  <li><em>Draw.</em> A 2d-tree divides a 2D plane in a simple way: all
+the points to the
+left of the root go in the left subtree; all those to the right go in
+the right subtree; and so forth, recursively.
+Your <tt>draw()</tt> method should draw all of the points to standard
+draw
+in black and the subdivisions in red (for vertical splits) and blue
+(for horizontal splits). For simplicity, you should leave your StdDraw
+scale
+at its default values (which include only the unit square). The
+provided
+inputs files contain only points in the unit square, and the provided
+visualizers also assume all points are in the unit square. This method
+need not be efficient—it is primarily for debugging. </li>
+</ul>
+
+<p>
+The prime advantage of a 2d-tree over a BST
+is that it supports efficient
+implementation of range search and nearest neighbor search.
+Each node corresponds to an axis-aligned rectangle,
+which encloses all of the points in its subtree.
+The root corresponds to the infinitely large square from [(-&#8734;, -&#8734;),
+(+&#8734;, +&#8734; )]; the left and right children
+of the root correspond to the two rectangles
+split by the <em>x</em>-coordinate of the point at the root; and so
+forth.
+</p>
+
+<ul>
+
+  <li><em>Range search.</em>
+To find all points contained in a given query rectangle, start at the
+root
+and recursively search for points in <em>both</em> subtrees using the
+following <em>pruning rule</em>: if the query rectangle does not
+intersect
+the rectangle corresponding to a node, there is no need to explore that
+node (or its subtrees).
+A subtree is searched only if it might contain a point contained in
+the query rectangle. </li>
+  <li><em>Nearest neighbor search.</em>
+To find a closest point to a given query point, start at the root
+and recursively search in <em>both</em> subtrees using the following <em>pruning
+rule</em>:
+if the closest point discovered so far is closer than the distance
+between the query point and the rectangle corresponding to a node,
+there is no need to explore that node (or its subtrees).
+That is, a node is searched only if it might contain a point
+that is closer than the best one found so far.
+The effectiveness of the pruning rule depends on quickly finding a
+nearby point. To do this, organize your recursive method so that when
+there are two possible subtrees to go down, you choose first <em>the
+subtree
+that is on the same side of the splitting line as the query point</em>;
+the closest point found while exploring the first
+subtree may enable pruning of the second subtree.
+<!--
+<p><li><em>k nearest neighbor search.</em>
+Similar to finding the nearest-neighbor but prune if the <em>k</em>th closest point
+discovered so far is closer than the distance between the query point
+and the rectangle corresponding to a node.
+--></li>
+</ul>
+
+<p><b>Clients.</b>&nbsp;
+You may use the following interactive client programs to test and debug
+your code.
+</p>
+
+<ul>
+
+  <li> <a href="http://www.csc.villanova.edu/~map/2053/s14/kdtree/code/KdTreeVisualizer.java">KdTreeVisualizer.java</a>
+computes and draws the 2d-tree that results from the sequence of points
+clicked by the
+user in the standard drawing window. </li>
+  <li> <a href="http://www.csc.villanova.edu/~map/2053/s14/kdtree/code/RangeSearchVisualizer.java">RangeSearchVisualizer.java</a>
+reads a sequence of points from a file (specified as a command-line
+argument) and inserts those points
+into a 2d-tree. Then, it performs range searches on the axis-aligned
+rectangles dragged
+by the user in the standard drawing window. </li>
+  <li><a href="http://www.csc.villanova.edu/~map/2053/s14/kdtree/code/NearestNeighborVisualizer.java">NearestNeighborVisualizer.java</a>
+reads a sequence of points from a file (specified as a command-line
+argument) and inserts those points
+into a 2d-tree. Then, it performs nearest neighbor queries on the point
+corresponding
+to the location of the mouse in the standard drawing window. </li>
+</ul>
+
+<p><b>Analysis of running time and memory usage.</b>
+Analyze the effectiveness of your approach to this problem by giving
+estimates of its time and space requirements.
+</p>
+
+<ul>
+
+  <li> Give the total memory usage in bytes (using tilde notation)
+of your 2d-tree data structure as a function of the number of points <em>N</em>,
+using the memory-cost model from lecture and Section 1.4 of the
+textbook.
+Count all memory that is used by your 2d-tree, including
+memory for the nodes, points, and rectangles.
+For the purposes of this assignment, assume that each <tt>Point2D</tt>
+object uses 32 bytes. </li>
+  <li> Give the expected running time in seconds (using tilde notation)
+to build a 2d-tree on <em>N</em> uniformly random points in the unit
+square.
+(Do not count the time to read in or generate the points.) Using the
+given input files is not sufficient. </li>
+  <li> How many nearest neighbor calculations can your 2d-tree
+implementation
+perform per second for&nbsp; <a href="http://www.csc.villanova.edu/~map/2053/s14/kdtree/testing/input100K.txt">input100K.txt</a>
+(100,000 points) and&nbsp; <a href="http://www.csc.villanova.edu/~map/2053/s14/kdtree/testing/input1M.txt">input1M.txt</a>
+(1 million points),
+where the query points are uniformly random points in the unit square?
+(Do not count the time to read in the points or to build the 2d-tree.)
+Repeat this question but with the brute-force implementation. </li>
+</ul>
+
+<p><b>Submission.</b>&nbsp;
+Submit a zipped folder containing:<tt> PointST.java</tt>, <tt>KdTreeST.java</tt>, <a href="http://www.csc.villanova.edu/~map/2053/s14/kdtree/readme.txt">readme.txt</a> ,
+and your project report, which should also be printed and handed in on
+the due date. The report should include all of the above, plus some
+sample runs and screenshots of your program to demonstrate that it
+works well. (The code for <tt>Point2D.java</tt> and <tt>RectHV.java</tt><tt></tt> should not be included since it should not have been modified.)&nbsp;
+</p>
+
+
+<p><span style="font-weight: bold;">More details (faq, helpful suggestions,</span><span style="font-weight: bold;"> more test files</span><span style="font-weight: bold;">).</span> See the <a href="http://www.cs.princeton.edu/courses/archive/spring14/cos226/checklist/kdtree.html">kd-tree project checklist from the Princeton algorithms course</a>
+</p>
+<p><b>Extra credit.</b>&nbsp; Create a new class KdTreeEnhanced that
+contains one additional method:
+</p>
+
+
+<blockquote>
+  <pre>public Iterable&lt;Point2D&gt; nearest(Point2D p, int k)<br></pre>
+</blockquote><span style="color: black;">
+
+This method should return the k points that are closest to the query
+point. </span><font style="color: black;" color="RED">It should do this in an efficient manner</font>,
+i.e. using the technique from KdTree, not brute force. Once you've
+completed this class, you'll be able to run the <a href="ftp://ftp.cs.princeton.edu/pub/cs226/kdtree/boidSimulator.zip">boid
+simulator</a>.
+Behold their flocking majesty. Please let me know if you would like to
+continue working on this extension to the project past the deadline.<br>
+&nbsp;<br>
+
+<p></p><address><small>This assignment was developed by Kevin Wayne, with Boid
+simulation by Josh Hug.<br>
+<br>
+</small></address>
+
+</body></html>
